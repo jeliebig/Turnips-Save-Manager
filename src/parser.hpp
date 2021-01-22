@@ -94,6 +94,26 @@ struct WeatherInfo {
     std::uint32_t raw_seed;
 };
 
+struct IslandInfo {
+    std::uint8_t _stuff[0x18];
+    std::array<std::uint16_t, 10> island_name;
+    std::uint8_t _more_stuff[0x8];
+    std::array<std::uint16_t, 10> representative_name;
+};
+
+struct PersonalInfo {
+    std::uint32_t town_id;
+    std::array<std::uint16_t, 10> island_name;
+    std::uint8_t _stuff[0x4];
+    std::uint32_t player_id;
+    std::array<std::uint16_t, 10> player_name;
+};
+
+struct PersonalPhoto {
+    std::uint32_t photo_size;
+    unsigned char photo_data[0x2300C];
+};
+
 static_assert(sizeof(VersionInfo)     == 0x10 && std::is_standard_layout_v<VersionInfo>);
 static_assert(sizeof(TurnipPrices)    == 0x44 && std::is_standard_layout_v<TurnipPrices>);
 static_assert(sizeof(VisitorSchedule) == 0x78 && std::is_standard_layout_v<VisitorSchedule>);
@@ -127,6 +147,7 @@ class VersionParser {
         Version version;
 
     public:
+        VersionParser() = default;
         VersionParser(fs::File &header): version(this->calc_version(header)) { }
 
         explicit inline operator Version() const {
@@ -178,7 +199,7 @@ class TurnipParser {
         TurnipParser(Version version, const std::vector<std::uint8_t> &save): version(version), prices(this->get_prices(save)) { }
 
         inline std::string get_pattern() const {
-            return lang::get_string(this->turnip_patterns[this->prices.pattern_type], lang::get_json()["turnips_patterns"]);
+            return lang::getString(this->turnip_patterns[this->prices.pattern_type], lang::getJson()["turnips_patterns"]);
         }
 
     private:
@@ -235,7 +256,7 @@ class VisitorParser {
             std::array<std::string, 7> names;
             std::transform(this->schedule.npcs.begin(), this->schedule.npcs.end(), names.begin(),
                 [this](std::uint32_t visitor) {
-                    return lang::get_string(this->visitor_names[visitor], lang::get_json()["npcs"]);
+                    return lang::getString(this->visitor_names[visitor], lang::getJson()["npcs"]);
                 }
             );
             return names;
@@ -337,7 +358,7 @@ class WeatherSeedParser {
         }
 
         inline std::string get_hemisphere_name() const {
-            return lang::get_string(this->hemisphere_names[this->info.hemisphere], lang::get_json()["hemispheres"]);
+            return lang::getString(this->hemisphere_names[this->info.hemisphere], lang::getJson()["hemispheres"]);
         }
 
     private:
@@ -352,5 +373,159 @@ class WeatherSeedParser {
                 return {};
         }
 };
+
+class IslandInfoParser {
+private:
+
+    // GSaveLandStart offsets from NHSE
+    constexpr static std::array ls_offsets = {
+        0x108ul,                                                    // 1.0.0
+        0x110ul, 0x110ul, 0x110ul, 0x110ul, 0x110ul,                // 1.1.x
+        0x110ul, 0x110ul,                                           // 1.2.x
+        0x110ul, 0x110ul,                                           // 1.3.x
+        0x110ul, 0x110ul, 0x110ul,                                  // 1.4.x
+        0x110ul, 0x110ul,                                           // 1.5.x
+        0x110ul,                                                    // 1.6.0
+    };
+
+    static_assert(ls_offsets.size() == static_cast<std::size_t>(Version::Total));
+
+public:
+    Version         version       = {};
+    IslandInfo      island_info   = {};
+
+public:
+    constexpr IslandInfoParser() = default;
+    IslandInfoParser(Version version, const std::vector<std::uint8_t> &save) : version(version), island_info(this->get_info((save))) { }
+
+    inline std::string get_representative_name() const {
+        std::string str;
+        for (std::uint16_t i : this->island_info.representative_name) {
+            str += (char) i;
+        }
+        // printf("[mayor_string] String: %s\n", str.c_str());
+        return str;
+    }
+
+    inline std::string get_island_name() const {
+        std::string str;
+        for (std::uint16_t i : this->island_info.island_name) {
+            str += (char) i;
+        }
+        // printf("[town_string] String: %s\n", str.c_str());
+        return str;
+    }
+
+private:
+    inline std::size_t get_info_offset() const {
+        return (this->version != Version::Unknown) ? this->ls_offsets[static_cast<std::size_t>(this->version)] : 0ul;
+    }
+
+    inline IslandInfo get_info(const std::vector<std::uint8_t> &save) const {
+        if (auto offset = this->get_info_offset(); offset != 0ul) {
+            printf("[IslandInfo] Offset: %li / 0x%lx\n", offset, offset);
+            return *reinterpret_cast<const IslandInfo*>(&save[offset]);
+        }
+        else
+            return {};
+    }
+};
+
+class PersonalInfoParser {
+private:
+
+    // PersonalId offsets from NHSE
+    constexpr static std::array pId_offsets = {
+        0xb0a0ul,                                                   // 1.0.0
+        0xb0b8ul, 0xb0b8ul, 0xb0b8ul, 0xb0b8ul, 0xb0b8ul,           // 1.1.x
+        0xb0b8ul, 0xb0b8ul,                                         // 1.2.x
+        0xb0b8ul, 0xb0b8ul,                                         // 1.3.x
+        0xb0b8ul, 0xb0b8ul, 0xb0b8ul,                               // 1.4.x
+        0xb0b8ul, 0xb0b8ul,                                         // 1.5.x
+        0xb0b8ul,                                                   // 1.6.0
+    };
+
+    static_assert(pId_offsets.size() == static_cast<std::size_t>(Version::Total));
+
+public:
+    Version         version         = {};
+    PersonalInfo    personal_info   = {};
+
+public:
+    constexpr PersonalInfoParser() = default;
+    PersonalInfoParser(Version version, const std::vector<std::uint8_t>& save) : version(version), personal_info(this->get_info((save))) { }
+
+    inline std::string get_player_name() const {
+        std::string str;
+        for (std::uint16_t i : this->personal_info.player_name) {
+            str += (char) i;
+        }
+        // printf("[player_string] string: %s\n", str.c_str());
+        return str;
+    }
+
+    inline std::string get_island_name() const {
+        std::string str;
+        for (std::uint16_t i : this->personal_info.island_name) {
+            str += (char) i;
+        }
+        // printf("[island_string] string: %s\n", str.c_str());
+        return str;
+    }
+
+private:
+    inline std::size_t get_info_offset() const {
+        return (this->version != Version::Unknown) ? this->pId_offsets[static_cast<std::size_t>(this->version)] : 0ul;
+    }
+
+    inline PersonalInfo get_info(const std::vector<std::uint8_t>& save) const {
+        if (auto offset = this->get_info_offset(); offset != 0ul) {
+            printf("[PersonalInfo] Offset: %li / 0x%lx\n", offset, offset);
+            return *reinterpret_cast<const PersonalInfo*>(&save[offset]);
+        }
+        else
+            return {};
+    }
+};
+
+class PersonalPhotoParser {
+private:
+
+    // ProfilePhoto offsets from NHSE
+    constexpr static std::array pp_offsets = {
+        0x115a0,                                                   // 1.0.0
+        0x123c0, 0x123c0, 0x123c0, 0x123c0, 0x123c0,               // 1.1.x
+        0x123c0, 0x123c0,                                          // 1.2.x
+        0x123c0, 0x123c0,                                          // 1.3.x
+        0x123c0, 0x123c0, 0x123c0,                                 // 1.4.x
+        0x123c0, 0x123c0,                                          // 1.5.x
+        0x123c0,                                                   // 1.6.0
+    };
+
+    static_assert(pp_offsets.size() == static_cast<std::size_t>(Version::Total));
+
+public:
+    Version         version          = {};
+    PersonalPhoto   personal_photo   = {};
+
+public:
+    constexpr PersonalPhotoParser() = default;
+    PersonalPhotoParser(Version version, const std::vector<std::uint8_t>& save) : version(version), personal_photo(this->get_info((save))) { }
+
+private:
+    inline std::size_t get_info_offset() const {
+        return (this->version != Version::Unknown) ? this->pp_offsets[static_cast<std::size_t>(this->version)] : 0ul;
+    }
+
+    inline PersonalPhoto get_info(const std::vector<std::uint8_t>& save) const {
+        if (auto offset = this->get_info_offset(); offset != 0ul) {
+            printf("[PersonalPhoto] Offset: %li / 0x%lx\n", offset, offset);
+            return *reinterpret_cast<const PersonalPhoto*>(&save[offset]);
+        }
+        else
+            return {};
+    }
+};
+
 
 } // namespace tp
