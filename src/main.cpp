@@ -76,8 +76,7 @@ int getPlayerNumber(fs::Filesystem &fs){
     return player_num;
 }
 
-// rc is just in here because I have no clue how the syntax around it works and how I need to use it
-bool loadPersonalSave(std::vector<uint8_t> &out_save, tp::VersionParser &out_version, int villager_num, fs::Filesystem &fs, Result &rc) {
+bool loadPersonalSave(std::vector<uint8_t> &out_save, tp::VersionParser &out_version, int villager_num, fs::Filesystem &fs) {
     char personal_path[24]; char personal_hdr_path[30];
     sprintf(personal_path, save_personal_path, villager_num);
     sprintf(personal_hdr_path, save_personal_hdr_path, villager_num);
@@ -86,6 +85,7 @@ bool loadPersonalSave(std::vector<uint8_t> &out_save, tp::VersionParser &out_ver
 
     if (fs.is_file(personal_path) && fs.is_file(personal_hdr_path))
     {   printf("[LPS] Opening personal save files: Villager%d\n", villager_num);
+        Result rc;
         fs::File personal_file, personal_hdr_file;
         if (rc = fs.openFile(personal_file, personal_path) | fs.openFile(personal_hdr_file, personal_hdr_path); R_FAILED(rc)) {
             fprintf(stderr, "[LPS] Failed to open personal save files: %#x\n", rc);
@@ -229,7 +229,7 @@ int main(int argc, char **argv) {
 
         for (int i = 0; i < player_num; i++)
         {
-            if (!loadPersonalSave(player_save[i], player_version[i], i, fs, rc)) {
+            if (!loadPersonalSave(player_save[i], player_version[i], i, fs)) {
                 fprintf(stderr, "Failed to load personal save: Villager%d\n", i);
                 break;
             }
