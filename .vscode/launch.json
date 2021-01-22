@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run with ryujinx",
+            "type": "mock",
+            "program": "echo",
+            "request": "launch",
+            "preLaunchTask": "ryujinx"
+        },
+        {
+            "name": "Run with nxlink",
+            "type": "mock",
+            "program": "echo",
+            "request": "launch",
+            "preLaunchTask": "run"
+        },
+    ]
+}
