@@ -1,8 +1,7 @@
-// This file was modified by jeliebig in 2021.
-//
+// Copyright (C) 2021 jeliebig
 // Copyright (C) 2020 averne
 //
-// This file is part of Turnips.
+// This file is part of Turnips-Save-Manager (This is a modified version of Turnips).
 //
 // Turnips is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
