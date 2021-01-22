@@ -20,6 +20,7 @@ Output will be located in out/.
 
 - [ReSwitched Discord](https://discord.gg/ZdqEhed) for helping me a lot with debugging and answering my (noob) questions.
 - [averne](https://github.com/averne/Turnips) for Turnips, the application all of this is based on.
+- The [JKSV](https://github.com/J-D-K/JKSV) project for some save management methods.
 - The [NHSE](https://github.com/kwsch/NHSE) project for save decrypting/parsing and offsets.
 - The [FTPD](https://github.com/mtheall/ftpd) project for the deko3d imgui backend.
 - [u/Kyek](https://reddit.com/u/Kyek) for the background and logo assets.

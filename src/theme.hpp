@@ -35,7 +35,7 @@ enum class Theme {
     Dark,
 };
 
-static inline void apply_theme(Theme theme) {
+static inline void applyTheme(Theme theme) {
     auto *colors = ImGui::GetStyle().Colors;
     std::string background_path;
 
@@ -70,7 +70,7 @@ static inline void apply_theme(Theme theme) {
         text_max_col = 0xff77d856;
     }
 
-    if (!gui::create_background(background_path))
+    if (!gui::createBackground(background_path))
         printf("Failed to create background\n");
 }
 

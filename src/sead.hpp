@@ -36,7 +36,7 @@ class Random {
             }
         }
 
-        constexpr inline std::uint32_t get_u32() {
+        constexpr inline std::uint32_t getU32() {
             std::uint32_t v1 = state[0] ^ (state[0] << 11);
 
             state[0] = state[1];
@@ -45,7 +45,7 @@ class Random {
             return state[3] = v1 ^ (v1 >> 8) ^ state[3] ^ (state[3] >> 19);
         }
 
-        constexpr inline std::uint64_t get_u64() {
+        constexpr inline std::uint64_t getU64() {
             std::uint32_t v1 = state[0] ^ (state[0] << 11);
             std::uint32_t v2 = state[1];
             std::uint32_t v3 = v1 ^ (v1 >> 8) ^ state[3];
@@ -60,9 +60,9 @@ class Random {
         template <typename T>
         constexpr inline T get() {
             if constexpr (std::is_same_v<std::remove_cv_t<std::remove_reference_t<T>>, std::uint32_t>) {
-                return get_u32();
+                return getU32();
             } else {
-                return get_u64();
+                return getU64();
             }
         }
 };

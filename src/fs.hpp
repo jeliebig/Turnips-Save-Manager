@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <string>
 #include <vector>
+#include <sys/stat.h>
 #include <switch.h>
 
 namespace fs {
@@ -44,7 +45,7 @@ struct Directory {
         fsDirClose(&this->handle);
     }
 
-    inline bool is_open() const {
+    inline bool isOpen() const {
         // TODO: Better heuristic?
         return this->handle.s.session;
     }
@@ -84,7 +85,7 @@ struct File {
         fsFileClose(&this->handle);
     }
 
-    inline bool is_open() const {
+    inline bool isOpen() const {
         return this->handle.s.session;
     }
 
@@ -129,7 +130,7 @@ struct Filesystem {
         return fsOpenBisFileSystem(&this->handle, id, "");
     }
 
-    inline Result open_sdmc() {
+    inline Result openSDMC() {
         return fsOpenSdCardFileSystem(&this->handle);
     }
 
@@ -138,7 +139,7 @@ struct Filesystem {
         fsFsClose(&this->handle);
     }
 
-    inline bool is_open() const {
+    inline bool isOpen() const {
         return this->handle.s.session;
     }
 
@@ -146,37 +147,37 @@ struct Filesystem {
         return fsFsCommit(&this->handle);
     }
 
-    inline std::size_t total_space() {
+    inline std::size_t getTotalSpace() {
         std::int64_t tmp = 0;
         fsFsGetTotalSpace(&this->handle, "/", &tmp);
         return tmp;
     }
 
-    inline std::size_t free_space() {
+    inline std::size_t getFreeSpace() {
         std::int64_t tmp = 0;
         fsFsGetFreeSpace(&this->handle, "/", &tmp);
         return tmp;
     }
 
-    inline Result open_directory(Directory &d, const std::string &path) {
+    inline Result openDirectory(Directory &d, const std::string &path) {
         return d.open(&this->handle, path);
     }
 
-    inline Result open_file(File &f, const std::string &path, std::uint32_t mode = FsOpenMode_Read) {
+    inline Result openFile(File &f, const std::string &path, std::uint32_t mode = FsOpenMode_Read) {
         return f.open(&this->handle, path, mode);
     }
 
-    inline Result create_directory(const std::string &path) {
+    inline Result createDirectory(const std::string &path) {
         return fsFsCreateDirectory(&this->handle, path.c_str());
     }
 
-    inline Result create_file(const std::string &path, std::size_t size = 0) {
+    inline Result createFile(const std::string &path, std::size_t size = 0) {
         return fsFsCreateFile(&this->handle, path.c_str(), static_cast<std::int64_t>(size), 0);
     }
 
-    inline Result copy_file(const std::string &source, const std::string &destination) {
+    inline Result copyFile(const std::string &source, const std::string &destination) {
         File source_f, dest_f;
-        if (auto rc = this->open_file(source_f, source) | this->open_file(dest_f, destination, FsOpenMode_Write); R_FAILED(rc))
+        if (auto rc = this->openFile(source_f, source) | this->openFile(dest_f, destination, FsOpenMode_Write); R_FAILED(rc))
             return rc;
 
         constexpr std::size_t buf_size = 0x100000; // 1 MiB
@@ -196,47 +197,78 @@ struct Filesystem {
         return 0;
     }
 
-    inline FsDirEntryType get_path_type(const std::string &path) {
+    inline FsDirEntryType getPathType(const std::string &path) {
         FsDirEntryType type;
         fsFsGetEntryType(&this->handle, path.c_str(), &type);
         return type;
     }
 
-    inline bool is_directory(const std::string &path) {
-        return get_path_type(path) == FsDirEntryType_Dir;
+    inline bool isDirectory(const std::string &path) {
+        return getPathType(path) == FsDirEntryType_Dir;
     }
 
     inline bool is_file(const std::string &path) {
-        return get_path_type(path) == FsDirEntryType_File;
+        return getPathType(path) == FsDirEntryType_File;
     }
 
-    inline FsTimeStampRaw get_timestamp(const std::string &path) {
+    inline FsTimeStampRaw getTimestamp(const std::string &path) {
         FsTimeStampRaw ts = {};
         fsFsGetFileTimeStampRaw(&this->handle, path.c_str(), &ts);
         return ts;
     }
 
-    inline std::uint64_t get_timestamp_created(const std::string &path) {
-        return this->get_timestamp(path).created;
+    inline std::uint64_t getTimestampCreated(const std::string &path) {
+        return this->getTimestamp(path).created;
     }
 
-    inline std::uint64_t get_timestamp_modified(const std::string &path) {
-        return this->get_timestamp(path).modified;
+    inline std::uint64_t getTimestampModified(const std::string &path) {
+        return this->getTimestamp(path).modified;
     }
 
-    inline Result move_directory(const std::string &old_path, const std::string &new_path) {
+    inline Result moveDirectory(const std::string &old_path, const std::string &new_path) {
         return fsFsRenameDirectory(&this->handle, old_path.c_str(), new_path.c_str());
     }
 
-    inline Result move_file(const std::string &old_path, const std::string &new_path) {
+    // original method from JKSV
+    inline Result copyDirectory(const std::string &old_path, const std::string &new_path) {
+        Directory old_dir;
+        old_dir.open(&this->handle, old_path);
+        auto list = old_dir.list();
+
+        for(size_t i = 0; i < old_dir.count(); i++)
+        {
+            std::string newFrom = old_path + list[i].name;
+            std::string newTo   = new_path + list[i].name;
+
+            if(list[i].type == FsDirEntryType_Dir)
+            {
+                newFrom += "/";
+                newTo += "/";
+                mkdir(newTo.substr(0, newTo.length() - 1).c_str(), 0777);
+
+                return copyDirectory(newFrom, newTo);
+            }
+            else
+            {
+                Result rc = copyFile(newFrom, newTo);
+                if (R_SUCCEEDED(rc))
+                {
+                    flush();
+                }
+                return rc;
+            }
+        }  
+    }
+
+    inline Result moveFile(const std::string &old_path, const std::string &new_path) {
         return fsFsRenameFile(&this->handle, old_path.c_str(), new_path.c_str());
     }
 
-    inline Result delete_directory(const std::string &path) {
+    inline Result deleteDirectory(const std::string &path) {
         return fsFsDeleteDirectoryRecursively(&this->handle, path.c_str());
     }
 
-    inline Result delete_file(const std::string &path) {
+    inline Result deleteFile(const std::string &path) {
         return fsFsDeleteFile(&this->handle, path.c_str());
     }
 };

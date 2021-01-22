@@ -32,15 +32,15 @@ static Language current_language = Language::Default;
 
 } // namespace
 
-const json &get_json() {
+const json &getJson() {
     return lang_json;
 }
 
-Language get_current_language() {
+Language getCurrentLanguage() {
     return current_language;
 }
 
-Result set_language(Language lang) {
+Result setLanguage(Language lang) {
     const char *path;
     current_language = lang;
     switch (lang) {
@@ -88,7 +88,7 @@ Result set_language(Language lang) {
     return 0;
 }
 
-Result initialize_to_system_language() {
+Result initializeToSystemLanguage() {
     if (auto rc = setInitialize(); R_FAILED(rc)) {
         setExit();
         return rc;
@@ -109,26 +109,26 @@ Result initialize_to_system_language() {
     switch (sl) {
         case SetLanguage_ENGB:
         case SetLanguage_ENUS:
-            return set_language(Language::English);
+            return setLanguage(Language::English);
         case SetLanguage_ZHCN:
         case SetLanguage_ZHHANS:
-            return set_language(Language::Chinese);
+            return setLanguage(Language::Chinese);
         case SetLanguage_FR:
-            return set_language(Language::French);
+            return setLanguage(Language::French);
         case SetLanguage_NL:
-            return set_language(Language::Dutch);
+            return setLanguage(Language::Dutch);
         case SetLanguage_IT:
-            return set_language(Language::Italian);
+            return setLanguage(Language::Italian);
         case SetLanguage_DE:
-            return set_language(Language::German);
+            return setLanguage(Language::German);
         case SetLanguage_ES:
-            return set_language(Language::Spanish);
+            return setLanguage(Language::Spanish);
         default:
-            return set_language(Language::Default);
+            return setLanguage(Language::Default);
     }
 }
 
-std::string get_string(std::string key, const json &json) {
+std::string getString(std::string key, const json &json) {
     return json.value(key, key);
 }
 

@@ -29,6 +29,7 @@
 
 namespace imgui::nx {
 
+bool checkUserExitKey();
 bool init();
 void exit();
 void newFrame();

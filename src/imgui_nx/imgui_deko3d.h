@@ -69,7 +69,7 @@ void render (dk::UniqueDevice &device_,
 /// \param handle_ Texture handle
 inline void *makeTextureID (DkResHandle handle_)
 {
-	return reinterpret_cast<void *> (static_cast<std::uintptr_t> (handle_));
+    return reinterpret_cast<void *> (static_cast<std::uintptr_t> (handle_));
 }
 
 /// \brief Align power-of-two value
@@ -80,7 +80,7 @@ inline void *makeTextureID (DkResHandle handle_)
 template <typename T, typename U>
 constexpr inline std::uint32_t align (T const &size_, U const &align_)
 {
-	return static_cast<std::uint32_t> (size_ + align_ - 1) & ~(align_ - 1);
+    return static_cast<std::uint32_t> (size_ + align_ - 1) & ~(align_ - 1);
 }
 }
 }
