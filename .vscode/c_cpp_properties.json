@@ -4,22 +4,13 @@
             "name": "DKP Aarch64",
             "includePath": [
                 "${workspaceFolder}/**",
-
                 "${workspaceFolder}/lib/imgui/include",
                 "${workspaceFolder}/lib/stb_image/include",
                 "${workspaceFolder}/lib/json-hpp/include",
-
-                "~/Bureau/Switch/libnx/nx/source",
-                "~/Bureau/Switch/libnx/nx/include",
-                "~/Bureau/Switch/libnx/nx/include/switch",
-
-                "${DEVKITPRO}/libnx/include",
-                "${DEVKITPRO}/portlibs/switch/include",
-
-                "${DEVKITPRO}/devkitA64/aarch64-none-elf/include",
-                "${DEVKITPRO}/devkitA64/lib/gcc/aarch64-none-elf/*/include",
-
-                "/usr/include"
+                "${DEVKITPRO_WIN}/libnx/include",
+                "${DEVKITPRO_WIN}/portlibs/switch/include",
+                "${DEVKITPRO_WIN}/devkitA64/aarch64-none-elf/include",
+                "${DEVKITPRO_WIN}/devkitA64/lib/gcc/aarch64-none-elf/*/include"
             ],
             "defines": [
                 "__SWITCH__",
@@ -27,7 +18,7 @@
                 "VERSION=\"0.0.0\"",
                 "COMMIT=\"0000000\""
             ],
-            "compilerPath": "${DEVKITPRO}/devkitA64/bin/aarch64-none-elf-gcc",
+            "compilerPath": "${DEVKITPRO_WIN}/devkitA64/bin/aarch64-none-elf-gcc.exe",
             "cStandard": "c11",
             "cppStandard": "c++17",
             "intelliSenseMode": "gcc-arm64"
