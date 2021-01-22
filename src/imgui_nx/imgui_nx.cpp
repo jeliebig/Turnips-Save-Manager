@@ -1,3 +1,5 @@
+// This file was modified by jeliebig in 2021.
+//
 // ftpd is a server implementation based on the following:
 // - RFC  959 (https://tools.ietf.org/html/rfc959)
 // - RFC 3659 (https://tools.ietf.org/html/rfc3659)
