@@ -6,6 +6,8 @@
     "visitors":           "Visitors",
     "weather":            "Weather",
     "language":           "Language",
+    "island_info":        "Island",
+    "personal":           "Player",
 
     "last_save_time":     "Last save time: %02d-%02d-%04d %02d:%02d:%02d\n",
     "save_outdated":      "Save outdated!",
@@ -57,5 +59,11 @@
     "hemispheres": {
         "northern":       "Northern",
         "southern":       "Southern"
-    }
+    },
+    
+    "current_island_info": "Information about the current island",
+    "representative_name": "Representative: %s",
+    "island_name":         "Islandname: %s",
+    "player_info":         "Playerinfo",
+    "player_name":         "Playername: %s"
 }

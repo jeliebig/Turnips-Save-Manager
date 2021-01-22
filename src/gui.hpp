@@ -36,12 +36,15 @@ bool loop();
 void render();
 void exit();
 
-bool create_background(const std::string &path);
+bool createBackground(const std::string &path);
+bool createImageFromPersonalSave(ImTextureID &out_txid, const std::uint32_t pp_image_id, unsigned char* photo_data, const std::uint32_t photo_size);
 
-void draw_turnip_tab(const tp::TurnipParser &parser, const TimeCalendarTime &cal_time, const TimeCalendarAdditionalInfo &cal_info);
-void draw_visitor_tab(const tp::VisitorParser &parser, const TimeCalendarTime &cal_time, const TimeCalendarAdditionalInfo &cal_info);
-void draw_weather_tab(const tp::WeatherSeedParser &parser);
-void draw_language_tab();
+void drawTurnipTab(const tp::TurnipParser &parser, const TimeCalendarTime &cal_time, const TimeCalendarAdditionalInfo &cal_info);
+void drawVisitorTab(const tp::VisitorParser &parser, const TimeCalendarTime &cal_time, const TimeCalendarAdditionalInfo &cal_info);
+// void draw_weather_tab(const tp::WeatherSeedParser &parser);
+void drawLanguageTab();
+void drawIslandTab(const tp::IslandInfoParser &island_parser, const std::pair<tp::PersonalInfoParser, ImTextureID>* personal_data, const size_t player_num , const tp::WeatherSeedParser &weather_parser, const tp::Date &save_date);
+//void draw_photo_test_tab(const tp::PersonalPhotoParser& photo_parser);
 
 template <typename F>
 void do_with_color(std::uint32_t col, F f) {

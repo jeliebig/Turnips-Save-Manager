@@ -21,6 +21,7 @@
 #include <numeric>
 #include <switch.h>
 #include <imgui.h>
+#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 #include "imgui_nx/imgui_deko3d.h"
 #include "imgui_nx/imgui_nx.h"
@@ -39,9 +40,8 @@ namespace {
 constexpr std::uint32_t BG_IMAGE_ID   = 1;
 constexpr std::uint32_t BG_SAMPLER_ID = 1;
 
-constexpr auto MAX_SAMPLERS = 2;
-constexpr auto MAX_IMAGES   = 2;
-
+constexpr auto MAX_SAMPLERS = 10;
+constexpr auto MAX_IMAGES   = 10;
 constexpr auto FB_NUM       = 2u;
 
 constexpr auto CMDBUF_SIZE  = 1024 * 1024;
@@ -217,13 +217,8 @@ bool init() {
 bool loop() {
     if (!appletMainLoop())
         return false;
-
-    hidScanInput();
-
-    auto const keysDown = hidKeysDown(CONTROLLER_P1_AUTO);
-
-    // check if the user wants to exit
-    if (keysDown & KEY_PLUS)
+    
+    if (!imgui::nx::checkUserExitKey())
         return false;
 
     imgui::nx::newFrame();
@@ -284,7 +279,7 @@ void exit() {
     deko3dExit();
 }
 
-bool create_background(const std::string &path) {
+bool createBackground(const std::string &path) {
     int w, h, nchan;
     auto *data = stbi_load(path.c_str(), &w, &h, &nchan, 4);
     if (!data) {
@@ -347,22 +342,101 @@ bool create_background(const std::string &path) {
     return true;
 }
 
-void draw_turnip_tab(const tp::TurnipParser &parser, const TimeCalendarTime &cal_time, const TimeCalendarAdditionalInfo &cal_info) {
+bool createImageFromPersonalSave(ImTextureID &out_txid, const std::uint32_t pp_image_id, unsigned char* photo_data, const std::uint32_t photo_size) {
+    int w, h, nchan;
+
+    if (pp_image_id < 2)
+    {
+        printf("[CIFPS] pp_image_id is not valid.\n");
+        return false;
+    }
+    
+    
+    printf("[CIFPS] Loading personal.dat photo with size: 0x%x\n", photo_size);
+
+    auto* data = stbi_load_from_memory(photo_data, photo_size, &w, &h, &nchan, 4);
+    if (!data) {
+        printf("[CIFPS] Failed to load personal photo: %s\n", stbi_failure_reason());
+        return false;
+    }
+
+    // Without specifying a desired channel count in stbi_load_from_memory() the value of nchan is always wrong
+    // -> use 4 (for the 4 channels in ImageFormat and stbi) instead
+    auto imageSize = w * h * 4;
+
+    printf("[CIFPS] Decoded jpg from personal.dat of Villager%d, %dx%d with %d channels: %d (%#x) bytes\n", (pp_image_id - 2), w, h, nchan, imageSize, imageSize);
+
+    // wait for previous commands to complete
+    s_queue.waitIdle();
+
+    dk::ImageLayout layout;
+    dk::ImageLayoutMaker{ s_device }
+        .setFlags(0)
+        .setFormat(DkImageFormat_RGBA8_Unorm)
+        .setDimensions(w, h)
+        .initialize(layout);
+
+    printf("[CIFPS] Initialized layout: %#lx aligned to %#x\n", layout.getSize(), layout.getAlignment());
+
+    auto memBlock = dk::MemBlockMaker{ s_device, imgui::deko3d::align(imageSize, DK_MEMBLOCK_ALIGNMENT) }
+        .setFlags(DkMemBlockFlags_CpuUncached | DkMemBlockFlags_GpuCached)
+        .create();
+
+    s_imageMemBlock = dk::MemBlockMaker{ s_device, imgui::deko3d::align(layout.getSize(), DK_MEMBLOCK_ALIGNMENT) }
+        .setFlags(DkMemBlockFlags_GpuCached | DkMemBlockFlags_Image)
+        .create();
+
+    printf("[CIFPS] Created mem blocks of size %#x & %#x\n", memBlock.getSize(), s_imageMemBlock.getSize());
+
+    std::memcpy(memBlock.getCpuAddr(), data, imageSize);
+
+    dk::Image image;
+    image.initialize(layout, s_imageMemBlock, 0);
+    s_imageDescriptors[pp_image_id].initialize(image);
+
+    // copy texture to image
+    dk::ImageView imageView(image);
+    s_cmdBuf[0].copyBufferToImage({ memBlock.getGpuAddr() },
+        imageView,
+        { 0, 0, 0, static_cast<std::uint32_t>(w), static_cast<std::uint32_t>(h), 1 });
+    s_queue.submitCommands(s_cmdBuf[0].finishList());
+
+    // initialize sampler descriptor
+    s_samplerDescriptors[pp_image_id].initialize(
+        dk::Sampler{}
+        .setFilter(DkFilter_Linear, DkFilter_Linear)
+        .setWrapMode(DkWrapMode_ClampToEdge, DkWrapMode_ClampToEdge, DkWrapMode_ClampToEdge));
+
+    // wait for commands to complete before releasing memblocks
+    s_queue.waitIdle();
+
+    stbi_image_free(data);
+
+    printf("[CIFPS] Done uploading texture\n");
+
+    printf("[CIFPS] Generating ImTextureID...\n");
+    out_txid = imgui::deko3d::makeTextureID(dkMakeTextureHandle(pp_image_id, pp_image_id));
+    printf("[CIFPS] Done!\n");
+
+    return true;
+}
+
+void drawTurnipTab(const tp::TurnipParser &parser, const TimeCalendarTime &cal_time, const TimeCalendarAdditionalInfo &cal_info) {
     if (!im::BeginTabItem(("turnips"_lang + "###turnips").c_str()))
         return;
 
     auto prices  = parser.prices;
     auto pattern = parser.get_pattern();
 
-    auto days_json = lang::get_json()["days"];
+    auto days_json = lang::getJson()["days"];
     std::array day_names = {
-        lang::get_string("sunday",    days_json),
-        lang::get_string("monday",    days_json),
-        lang::get_string("tuesday",   days_json),
-        lang::get_string("wednesday", days_json),
-        lang::get_string("thursday",  days_json),
-        lang::get_string("friday",    days_json),
-        lang::get_string("saturday",  days_json),
+        lang::getString("sunday",    days_json),
+        lang::getString("monday",    days_json),
+        lang::getString("tuesday",   days_json),
+        lang::getString("wednesday", days_json),
+        lang::getString("thursday",  days_json),
+        lang::getString("friday",    days_json),
+        lang::getString("saturday",  days_json),
     };
 
     std::array<float, 14> float_prices;
@@ -415,22 +489,22 @@ void draw_turnip_tab(const tp::TurnipParser &parser, const TimeCalendarTime &cal
     im::EndTabItem();
 }
 
-void draw_visitor_tab(const tp::VisitorParser &parser, const TimeCalendarTime &cal_time, const TimeCalendarAdditionalInfo &cal_info) {
+void drawVisitorTab(const tp::VisitorParser &parser, const TimeCalendarTime &cal_time, const TimeCalendarAdditionalInfo &cal_info) {
     if (!im::BeginTabItem(("visitors"_lang + "###visitors").c_str()))
         return;
 
     // Visitors leave at 5am, so adjust the weekday
     auto wday = (cal_time.hour >= 5) ? cal_info.wday : std::clamp(cal_info.wday - 1, 0u, 7u);
 
-    auto days_json = lang::get_json()["days"];
+    auto days_json = lang::getJson()["days"];
     std::array day_names = {
-        lang::get_string("sunday",    days_json),
-        lang::get_string("monday",    days_json),
-        lang::get_string("tuesday",   days_json),
-        lang::get_string("wednesday", days_json),
-        lang::get_string("thursday",  days_json),
-        lang::get_string("friday",    days_json),
-        lang::get_string("saturday",  days_json),
+        lang::getString("sunday",    days_json),
+        lang::getString("monday",    days_json),
+        lang::getString("tuesday",   days_json),
+        lang::getString("wednesday", days_json),
+        lang::getString("thursday",  days_json),
+        lang::getString("friday",    days_json),
+        lang::getString("saturday",  days_json),
     };
 
     auto names = parser.get_visitor_names();
@@ -447,9 +521,9 @@ void draw_visitor_tab(const tp::VisitorParser &parser, const TimeCalendarTime &c
         do_with_color(get_color(day), [&] {
             im::TableNextCell(), im::Text("%s", names[day].c_str());
             if (day == parser.get_celeste_day())
-                im::SameLine(), im::TextUnformatted(lang::get_string("celeste", lang::get_json()["npcs"]).c_str());
+                im::SameLine(), im::TextUnformatted(lang::getString("celeste", lang::getJson()["npcs"]).c_str());
             if (day == parser.get_wisp_day())
-                im::SameLine(), im::TextUnformatted(lang::get_string("wisp",    lang::get_json()["npcs"]).c_str());
+                im::SameLine(), im::TextUnformatted(lang::getString("wisp",    lang::getJson()["npcs"]).c_str());
         });
     };
 
@@ -461,7 +535,7 @@ void draw_visitor_tab(const tp::VisitorParser &parser, const TimeCalendarTime &c
     im::EndTabItem();
 }
 
-void draw_weather_tab(const tp::WeatherSeedParser &parser) {
+/* void draw_weather_tab(const tp::WeatherSeedParser &parser) {
     if (!im::BeginTabItem(("weather"_lang + "###weather").c_str()))
         return;
 
@@ -475,13 +549,13 @@ void draw_weather_tab(const tp::WeatherSeedParser &parser) {
     im::TextUnformatted("weather_url_tip"_lang.c_str());
 
     im::EndTabItem();
-}
+} */
 
-void draw_language_tab() {
+void drawLanguageTab() {
     if (!im::BeginTabItem(("language"_lang + "###lang").c_str()))
         return;
 
-    auto cur_lang = lang::get_current_language(), prev_lang = cur_lang;
+    auto cur_lang = lang::getCurrentLanguage(), prev_lang = cur_lang;
     im::RadioButton("English",    reinterpret_cast<int *>(&cur_lang), static_cast<int>(lang::Language::English));
     im::RadioButton("中文",        reinterpret_cast<int *>(&cur_lang), static_cast<int>(lang::Language::Chinese));
     im::RadioButton("Français",   reinterpret_cast<int *>(&cur_lang), static_cast<int>(lang::Language::French));
@@ -491,12 +565,78 @@ void draw_language_tab() {
     im::RadioButton("Español",    reinterpret_cast<int *>(&cur_lang), static_cast<int>(lang::Language::Spanish));
 
     if (cur_lang != prev_lang)
-        lang::set_language(cur_lang);
+        lang::setLanguage(cur_lang);
 
     im::Separator();
     im::TextUnformatted("If you'd like to see your language here, make an issue on\nhttps://github.com/averne/Turnips");
 
     im::EndTabItem();
 }
+
+void drawIslandTab(const tp::IslandInfoParser &island_parser, const std::pair<tp::PersonalInfoParser, ImTextureID> *player_data , const size_t player_num , const tp::WeatherSeedParser &weather_parser, const tp::Date &save_date) {
+    if (!im::BeginTabItem(("island_info"_lang + "###island").c_str()))
+        return;
+    
+    im::Text("last_save_time"_lang.c_str(),
+    save_date.day, save_date.month, save_date.year, save_date.hour, save_date.minute, save_date.second);
+    im::Dummy(ImVec2(0.0f, 3.0f));
+    
+    auto [personal_parser, personal_photo_id] = player_data[0];
+    im::BeginTable("##IslandInfoTable", 2, ImGuiTableFlags_RowBg);
+    im::TableSetupColumn("##IslandInfoTableColumn1", ImGuiTableColumnFlags_WidthFixed, (500.0f * 0.25f + 2.0f));
+    im::TableNextRow();
+    
+    im::Image(personal_photo_id, ImVec2(500.0f * 0.25f, 500.0f * 0.25f));    
+    im::TableNextCell();
+    im::Text("representative_name"_lang.c_str(), island_parser.get_representative_name().c_str());
+    im::Text("island_name"_lang.c_str(), island_parser.get_island_name().c_str());
+    im::Text("hemisphere"_lang.c_str(), weather_parser.get_hemisphere_name().c_str());
+
+    // im::TableSetupColumn("##IslandInfoTableColumn2", ImGuiTableColumnFlags_WidthFixed, (500.0f * 0.18f + 2.0f));
+    for (size_t i = 1; i < player_num; i++)
+    {
+        im::TableNextRow();
+
+        auto [personal_parser, personal_photo_id] = player_data[i];
+        im::Image(personal_photo_id, ImVec2(500.0f * 0.18f, 500.0f * 0.18f));
+        im::TableNextCell();
+        im::Text("player_name"_lang.c_str(), personal_parser.get_player_name().c_str());
+    }
+    im::EndTable();
+
+    im::EndTabItem();
+}
+
+/* void draw_personal_tab(const tp::PersonalInfoParser &info_parser, const tp::PersonalPhotoParser &photo_parser) {
+    if (!im::BeginTabItem(("personal"_lang + "###personal").c_str()))
+        return;
+
+    im::TextUnformatted("player_info"_lang.c_str());
+    im::Dummy(ImVec2(0.0f, 10.0f));
+    
+    im::BeginTable("##PlayerInfo table", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersV);
+    
+    im::TableNextCell();
+    im::Image(, ImVec2(500.0f * 0.25f, 500.0f * 0.25f));
+    
+    im::TableNextCell();
+    im::Text("player_name"_lang.c_str(), info_parser.get_player_name().c_str());
+    im::Text("island_name"_lang.c_str(), info_parser.get_island_name().c_str());
+
+    im::EndTable();
+
+    im::Separator();
+
+    im::EndTabItem();
+} */
+
+/* void draw_photo_test_tab(const tp::PersonalPhotoParser& photo_parser) {
+   if (!im::BeginTabItem(("photo_test"_lang + "###photo_test").c_str()))
+       return;
+
+   im::Image(imgui::deko3d::makeTextureID(dkMakeTextureHandle(PP_IMAGE_ID, PP_SAMPLER_ID)), ImVec2(500.0f * 0.5f, 500.0f * 0.5f));
+
+   im::EndTabItem();
+} */
 
 } // namespace gui

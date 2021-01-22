@@ -6,6 +6,8 @@
     "visitors":           "Besucher",
     "weather":            "Wetter",
     "language":           "Sprache",
+	"island_info":        "Insel",
+	"personal":           "Spieler",
 
     "last_save_time":     "Zuletzt gespeichert: %02d-%02d-%04d %02d:%02d:%02d\n",
     "save_outdated":      "Spielstand veraltet!",
@@ -57,5 +59,11 @@
     "hemispheres": {
         "northern":       "Nördliche",
         "southern":       "Südliche"
-    }
+    },
+
+    "current_island_info": "Informationen zur aktuellen Insel",
+    "representative_name": "Inselsprecher: %s",
+    "island_name":         "Inselname: %s",
+    "player_info":         "Spielerinfos",
+    "player_name":         "Spielername: %s"
 }
