@@ -61,7 +61,7 @@ extern "C" void userAppExit() {
 
 int getPlayerNumber(fs::Filesystem &fs){
     int player_num = 0;
-    char player_path[10];
+    char player_path[11];
 
     for (int i = 0; i < 8; i++)
     {
@@ -69,7 +69,10 @@ int getPlayerNumber(fs::Filesystem &fs){
 
         if (fs.isDirectory(player_path))
         {
-            player_num +=1;
+            player_num += 1;
+        }
+        else {
+            break;
         }
     }
 
@@ -234,7 +237,7 @@ int main(int argc, char **argv) {
                 break;
             }
         }
-        printf("Loaded %d villagers/(players) from save data!\n", player_num);
+        printf("Loaded %d players from save data!\n", player_num);
     }
     
     if (auto rc = lang::initializeToSystemLanguage(); R_FAILED(rc))

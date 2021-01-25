@@ -591,6 +591,7 @@ void drawIslandTab(const tp::IslandInfoParser &island_parser, const std::pair<tp
     im::TableNextCell();
     im::Text("representative_name"_lang.c_str(), island_parser.get_representative_name().c_str());
     im::Text("island_name"_lang.c_str(), island_parser.get_island_name().c_str());
+    im::Text("island_id"_lang.c_str(), island_parser.island_info.island_id);
     im::Text("hemisphere"_lang.c_str(), weather_parser.get_hemisphere_name().c_str());
 
     // im::TableSetupColumn("##IslandInfoTableColumn2", ImGuiTableColumnFlags_WidthFixed, (500.0f * 0.18f + 2.0f));
@@ -608,36 +609,19 @@ void drawIslandTab(const tp::IslandInfoParser &island_parser, const std::pair<tp
     im::EndTabItem();
 }
 
-/* void draw_personal_tab(const tp::PersonalInfoParser &info_parser, const tp::PersonalPhotoParser &photo_parser) {
-    if (!im::BeginTabItem(("personal"_lang + "###personal").c_str()))
-        return;
+void drawSwitchSaveTab() {
+    if (!im::BeginTabItem(("switch_save"_lang + "###save-switch").c_str()))
+    return;
 
-    im::TextUnformatted("player_info"_lang.c_str());
-    im::Dummy(ImVec2(0.0f, 10.0f));
     
-    im::BeginTable("##PlayerInfo table", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersV);
-    
-    im::TableNextCell();
-    im::Image(, ImVec2(500.0f * 0.25f, 500.0f * 0.25f));
-    
-    im::TableNextCell();
-    im::Text("player_name"_lang.c_str(), info_parser.get_player_name().c_str());
-    im::Text("island_name"_lang.c_str(), info_parser.get_island_name().c_str());
-
-    im::EndTable();
-
     im::Separator();
+    im::Dummy(ImVec2(0.0f, 3.0f));
+
+    im::Button("create_backup"_lang.c_str(), ImVec2(5.0f, 5.0f));
+    im::Dummy(ImVec2(10.0f, 0.0f));
+    im::Button("load_selected_save"_lang.c_str(), ImVec2(5.0f, 5.0f));
 
     im::EndTabItem();
-} */
-
-/* void draw_photo_test_tab(const tp::PersonalPhotoParser& photo_parser) {
-   if (!im::BeginTabItem(("photo_test"_lang + "###photo_test").c_str()))
-       return;
-
-   im::Image(imgui::deko3d::makeTextureID(dkMakeTextureHandle(PP_IMAGE_ID, PP_SAMPLER_ID)), ImVec2(500.0f * 0.5f, 500.0f * 0.5f));
-
-   im::EndTabItem();
-} */
+}
 
 } // namespace gui

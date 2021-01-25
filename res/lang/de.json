@@ -64,6 +64,7 @@
     "current_island_info": "Informationen zur aktuellen Insel",
     "representative_name": "Inselsprecher: %s",
     "island_name":         "Inselname: %s",
+    "island_id":           "Insel-ID: %#x",
     "player_info":         "Spielerinfos",
     "player_name":         "Spielername: %s"
 }

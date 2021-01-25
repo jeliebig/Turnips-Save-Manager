@@ -96,7 +96,8 @@ struct WeatherInfo {
 };
 
 struct IslandInfo {
-    std::uint8_t _stuff[0x18];
+    std::uint8_t _stuff[0x14];
+    std::uint32_t island_id;
     std::array<std::uint16_t, 10> island_name;
     std::uint8_t _more_stuff[0x8];
     std::array<std::uint16_t, 10> representative_name;

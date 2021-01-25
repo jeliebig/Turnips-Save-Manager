@@ -198,18 +198,31 @@ struct Filesystem {
         return 0;
     }
 
-    inline FsDirEntryType getPathType(const std::string &path) {
+    inline FsDirEntryType getPathType(const std::string &path, Result& rc) {
         FsDirEntryType type;
-        fsFsGetEntryType(&this->handle, path.c_str(), &type);
+        rc = fsFsGetEntryType(&this->handle, path.c_str(), &type);   
         return type;
     }
 
     inline bool isDirectory(const std::string &path) {
-        return getPathType(path) == FsDirEntryType_Dir;
+        Result rc;
+        bool isDir = getPathType(path, rc) == FsDirEntryType_Dir;
+        if (R_FAILED(rc))
+        {
+            return false;
+        }
+        
+        return isDir;
     }
 
     inline bool is_file(const std::string &path) {
-        return getPathType(path) == FsDirEntryType_File;
+        Result rc;
+        bool isFile = getPathType(path, rc) == FsDirEntryType_File;
+        if (R_FAILED(rc))
+        {
+            return false;
+        }        
+        return isFile;
     }
 
     inline FsTimeStampRaw getTimestamp(const std::string &path) {
